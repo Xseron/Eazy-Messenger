@@ -1,1 +1,2 @@
-# Eazy-Messenger
+# EazyMessenger
+python EazyMessenger with tkinter
