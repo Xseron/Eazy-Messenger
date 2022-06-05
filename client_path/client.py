@@ -21,16 +21,21 @@ class Client():
         receive = threading.Thread(target=self._client_receive)
         receive.start()
 
+    def end(self):
+        self.socket.close()
+
     def client_send(self,text):
         sys.stdout.write("\x1b[1A\x1b[2K") # Delete previous line
         self.socket.send(bytes(text, encoding='utf-8'))
 
     def _client_receive(self):
-        while True:
-            try:
-                text = self.socket.recv(1024).decode("utf-8").split('~')
-                self.ms.send_message(text[0],text[1])
-                print(self.socket.recv(1024).decode("utf-8"))
-            except:
-                self.socket.close()
-                return
+        try:
+            while True:
+                text = self.socket.recv(1024).decode("utf-8")
+                if(text!=''):
+                    self.ms.send_message(text)
+                    print(text)
+                else:
+                    print('err')
+        except:
+            print("Exit_program")

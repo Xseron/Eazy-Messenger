@@ -1,8 +1,11 @@
 from tkinter import *
+from tkinter import messagebox
 from tkinter.scrolledtext import ScrolledText
-from message_frames import message
-import client
+from client_path.message_frames import message
+from client_path import client
 import threading
+import json
+import sys
 
 from PIL import Image, ImageTk
 
@@ -15,13 +18,13 @@ class main_screen(Tk):
     send_button = None
     edit_id = 0
     name = ''
-    frame_array = []
-    messages = []
+    _frame_array = []
+    _messages = []
 
     def __init__(self,name:str):
         super().__init__()
         self.name = name
-        self.cl = client.Client(name,self)
+        self.cl = client.Client(name, self)
         threading.Thread(self.cl.start()).start()
         # configure columns and rows
         self.columnconfigure(0, weight=2)
@@ -34,6 +37,8 @@ class main_screen(Tk):
         self.rowconfigure(3, weight=1)
 
         self.create_widgets()
+
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # not allowed to expand
         self.resizable(0, 0)
@@ -93,7 +98,7 @@ class main_screen(Tk):
         self.send_button.config(text='Edit',command=self._endit_btn_down)
 
     def _endit_btn_down(self):
-        t = self.frame_array[self.edit_id]
+        t = self._frame_array[self.edit_id]
         t.edit_text(self.input_string_var.get())
         self.send_button.config(text='Send', command=self._send_btn_down)
         self.input_string_var.set('')
@@ -103,11 +108,26 @@ class main_screen(Tk):
         self.input_string_var.set('')
         self.cl.client_send(text)
 
-    def send_message(self,name:str,text_massage:str):
-        text_massage = text_massage.strip()
-        if text_massage!='':
-            self.cl.client_send(text_massage)
-            frame = message(self,len(self.frame_array),name,text_massage,self.input_string_var)
-            self.frame_array.append(frame)
-            self.messages_box.window_create(END, window=frame)
-            self.messages_box.insert(END, '\n')
+    def get_messages(self):
+        return self._messages
+
+    def send_messages(self,name:str,list_massages:list):
+        for send_message in list_massages:
+            self.send_message(name,send_message)
+
+    def on_closing(self):
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            self.destroy()
+            self.cl.end()
+
+    def send_message(self,text_massages:str):
+        text_massages = text_massages.split('~')
+        for text_massage in text_massages:
+            text_massage_data = json.loads(text_massage)
+            text = text_massage_data['message'].strip()
+            name = text_massage_data['name']
+            if text_massage!='':
+                frame = message(self, len(self._frame_array), name, text, self.input_string_var)
+                self._frame_array.append(frame)
+                self.messages_box.window_create(END, window=frame)
+                self.messages_box.insert(END, '\n')

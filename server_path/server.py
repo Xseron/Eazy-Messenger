@@ -1,10 +1,12 @@
 import socket
 import _thread
-import threading
+import json
 from datetime import datetime
 
 
 class Server():
+
+    messages = []
 
     def __init__(self):
         # For remembering users
@@ -31,10 +33,12 @@ class Server():
             self.users_table[connection] = client_name
             print(f'{self._get_current_time()} {client_name} joined the room !!')
 
+            self.send_last_messages(connection)
+
             while True:
                 data = connection.recv(64).decode('utf-8')
                 if data != '':
-                    self.multicast(data, owner=connection)
+                    self.multicast_json(data, owner=connection)
                 else:
                     return
         except:
@@ -45,10 +49,20 @@ class Server():
     def _get_current_time(self):
         return datetime.now().strftime("%H:%M:%S")
 
-    def multicast(self, message, owner=None, adres_to=None):
+    def multicast_json(self, message, owner=None):
+        data = {'name': self.users_table[owner], 'message': message}
+        data_json = json.dumps(data)
+        self.messages.append(data_json)
+        for conn in self.users_table:
+            conn.sendall(bytes(data_json, encoding='utf-8'))
+
+    def send_last_messages(self,new_client=None):
+        text = '~'.join(self.messages)
+        new_client.send(bytes(text, encoding='utf-8'))
+
+    def multicast(self, message, owner=None):
         for conn in self.users_table:
             data = f'{self.users_table[owner]}~{message}'
-            print(data)
             conn.sendall(bytes(data, encoding='utf-8'))
 
 
